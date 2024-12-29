@@ -54,6 +54,7 @@ init:
 branches:
   only:
     - master
+    - main
 
 stack:
   python ${PYTHON_V}
