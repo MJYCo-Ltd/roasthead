@@ -27,7 +27,7 @@ environment:
   - job_name: windows_legacy
     appveyor_build_worker_image: Visual Studio 2019
   - job_name: windows
-    appveyor_build_worker_image: Visual Studio 2019
+    appveyor_build_worker_image: Visual Studio 2022
   - job_name: macos
     appveyor_build_worker_image: macos-monterey # macos-bigsur (macOS 11 not support by brew any longer)
   - job_name: linux
@@ -74,7 +74,7 @@ for:
     BUILD_PYINSTALLER: "True"
     ARTISAN_LEGACY: "True"
     VC_REDIST: "https://aka.ms/vs/16/release/vc_redist.x64.exe"  #redistributable for VS 2015-2019
-    VCVARSALL: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build/vcvarsall.bat"
+    VCVARSALL: "C:/Program Files (x86)/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat"
 
   install:
     - cmd: echo Windows Legacy Install
