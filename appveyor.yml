@@ -1,44 +1,18 @@
-# ABOUT
-# Appveyor CI configuration to build Artisan install packages
-#     for Windows, Windows legacy, macOS, and Linux
-#
-# LICENSE
-# This program or module is free software: you can redistribute it and/or
-# modify it under the terms of the GNU General Public License as published
-# by the Free Software Foundation, either version 2 of the License, or
-# version 3 of the License, or (at your option) any later versison. It is
-# provided for educational purposes and is distributed in the hope that
-# it will be useful, but WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
-# the GNU General Public License for more details.
-#
-# AUTHOR
-# Dave Baxter, Marko Luther 2023
 
-# Include "skip ci" in the commit message to prevent this build process from running
 environment:
-  # Set the default Appveyor Python version here. Does not affect windows_legacy. Can be overridden in platform environment.
   PYTHON_V: 3.8
-  # Upgrade to specific version (for platforms supporting upgrade). Upgrade skipped if env var is missing or blank.
-  #PYUPGRADE_WIN_V: 3.11.6
-  #PYUPGRADE_MACOS_V: 3.12.1
 
   matrix:
   - job_name: windows
-    appveyor_build_worker_image: Visual Studio 2019
+    appveyor_build_worker_image: Visual Studio 2022
 
-
-# Generic build number, later set to commit hash by init
 version: '{build}'
 
-# Do not build on tags
 skip_tags: true
 clone_depth: 1
 
 init:
-  # Sets the commit hash to "build version number" shown in appveyor build status, the build number keeps it unique
   - ps: Update-AppveyorBuild -Version "$($env:APPVEYOR_REPO_COMMIT.substring(0,7)) ($env:APPVEYOR_BUILD_NUMBER)"
-  # Env used to enable artifact upload for PR builds by providing a valid file name, invalid for REPO builds
   - ps: |
       $env:artifact_prefix = 'disable_artifact'
       if ([bool]$env:APPVEYOR_PULL_REQUEST_NUMBER -eq $true) {
@@ -68,63 +42,45 @@ for:
     BUILD_PYINSTALLER: "True"
     ARTISAN_LEGACY: "False"
     VC_REDIST: "https://aka.ms/vs/17/release/vc_redist.x64.exe"  #redistributable for VS 2015-2022
-    VCVARSALL: "D:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build/vcvarsall.bat"
+    VCVARSALL: "D:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat"
 
   install:
     - cmd: echo Windows Install
 
-    # Update the Python version when PYUPGRADE_WIN_V is set.  The upgrade happens in install-win.bat
-    # Note that the paths set below may not exist yet.
     - ps: |
         if (Test-Path env:PYUPGRADE_WIN_V) {
             $env:PREV_PYTHON_V = $env:PYTHON_V
             $env:PYTHON_V = ($env:PYUPGRADE_WIN_V -split '\.')[0..1] -join '.'
         }
 
-    # derive the python path from the version number
     - ps: $env:PYTHON_PATH = "C:/Python$($env:PYTHON_V -replace '\.','')-x64"
     - ps: Write-Host $env:PYTHON_PATH
 
-    # generate the path to PyQt translations files
     - ps: $env:QT_TRANSL = "$env:PYTHON_PATH/Lib/site-packages/PyQt6/Qt6/translations"
 
-    # pull library versions from requirments file
     - ps: $env:PYINSTALLER_VER = Select-String -Path ./src/requirements.txt "pyinstaller==([\d\.]*).*platform_system='Windows'" -List | ForEach-Object {$_.Matches.Groups[1].Value}
     - ps: Write-Host "PYINSTALLER_VER= $env:PYINSTALLER_VER"
 
-    # update path env var
     - cmd: set PATH=%PYTHON_PATH%;%PYTHON_PATH%\Scripts;%PATH%
 
-    # run the install script
     - cmd: .ci/install-win.bat
 
   build_script:
     - cmd: echo Windows Build
     - cmd: cd src
 
-    #update the copyright year used by pyinstaller to set exe properties for Windows
     - ps: $YEAR=(Get-Date).year
     - ps: gc version-metadata.yml | %{ $_ -replace "yyyy", "$YEAR" } | out-file newfile -encoding ascii
     - ps: move -force newfile version-metadata.yml
 
-    # update the __revision__ field with the left seven of the GIT commit hash
     - ps: $GIT_VERSION=git rev-parse --verify --short HEAD
     - ps: gc artisanlib/__init__.py | %{ $_ -replace "__revision__ = '.*'", "__revision__ = '$GIT_VERSION'" } | out-file newfile -encoding ascii
     - ps: move -force newfile artisanlib/__init__.py
 
-    # run the build script
     - cmd: build-win3-pi.bat
 
-#  test_script:
-#    - cmd: python -m unittest discover
-
   artifacts:
-#    - path: 'generated-win.zip'
     - path: 'src\%artifact_prefix%-*.zip'
 
   deploy_script:
     - cmd: bash ../.ci/upload.sh artisan-*.zip
-
-#  # uncomment this section for remote desktop connection to build image
-#  on_finish:
-#    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
