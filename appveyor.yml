@@ -12,6 +12,8 @@ skip_tags: true
 clone_depth: 1
 
 init:
+  - ps: |
+      git config --global url."git@github.com:".insteadOf "https://github.com/"
   - ps: Update-AppveyorBuild -Version "$($env:APPVEYOR_REPO_COMMIT.substring(0,7)) ($env:APPVEYOR_BUILD_NUMBER)"
   - ps: |
       $env:artifact_prefix = 'disable_artifact'
