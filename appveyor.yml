@@ -11,9 +11,6 @@ version: '{build}'
 skip_tags: true
 clone_depth: 1
 
-git:
-  url: https://github.com/MJYCo-Ltd/roasthead.git
-
 init:
   - ps: Update-AppveyorBuild -Version "$($env:APPVEYOR_REPO_COMMIT.substring(0,7)) ($env:APPVEYOR_BUILD_NUMBER)"
   - ps: |
@@ -67,6 +64,7 @@ for:
     - cmd: .ci/install-win.bat
 
   build_script:
+    - git clone https://github.com/MJYCo-Ltd/roasthead.git
     - cmd: echo Windows Build
     - cmd: cd src
 
